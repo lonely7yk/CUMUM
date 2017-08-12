@@ -76,17 +76,17 @@ function FindBunch(everyIndex,array,k,l,Y,mindist,MAX)
     
     
     array(k:end) = [];		% 把当前层之后的序列全部清空
-    if length(array) >= 1
-    	for i = 1:length(array)
-    	    time(i) = mindist(Y(i),array(i));	% 记录站点到路口的所有时间
-    	end
-    	maxTime = max(time);		% 记录当前序列时间最大值
-    	if maxTime > MAX 			% 如果当前序列时间最大值大于上一层时间，则剪枝
-    	    return;
-    	else
-    	    MAX = maxTime;			% 否则更新这一层序列最大时间
-    	end
-    end
+%     if length(array) >= 1
+%     	for i = 1:length(array)
+%     	    time(i) = mindist(Y(i),array(i));	% 记录站点到路口的所有时间
+%     	end
+%     	maxTime = max(time);		% 记录当前序列时间最大值
+%     	if maxTime > MAX 			% 如果当前序列时间最大值大于上一层时间，则剪枝
+%     	    return;
+%     	else
+%     	    MAX = maxTime;			% 否则更新这一层序列最大时间
+%     	end
+%     end
     
 	if (length(array) == l)			% 如果序列达到要求长度，证明它满足他的最长时间小于之前的最长时间
 		result{count} = array;		% 将结果记录下来
