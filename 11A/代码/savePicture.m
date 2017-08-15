@@ -26,6 +26,5 @@ function savePicture(titleName,xlabelName,ylabelName)
 	ax_height = outerpos(4) - ti(2) - ti(4);
 	ax.Position = [left bottom ax_width ax_height];
 	saveas(gcf,strcat(path,'/',titleName,'.png'));
-	saveas(gcf,strcat(path,'/',titleName,'.fig'));
 	close all
 end
