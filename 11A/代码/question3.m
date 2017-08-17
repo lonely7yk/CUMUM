@@ -6,7 +6,8 @@ close all
 % 2. density : 1列编号、2列 As、3列 Cd、4列 Cr、5列 Cu、6列 Hg、7列 Ni、8列 Pb、9列 Zn
 % 3. delta0 : 背景值方差
 % 4. c : 中间值（变量为 d）
-% 5. Dc : c 的导数
+% 5. D2cd : c 对 d 的二次导数
+% 6. Dct : c 对 t 的一次导数
 load Q2
 
 %% ******************************** 计算 *********************************
@@ -16,10 +17,10 @@ load Q2
 % 	end
 % end
 
-load num	% 由于计算时间太长，存储后直接读取
+% load num	% 由于计算时间太长，存储后直接读取
 for i = 1:size(Dct,2)
     for j = 1:size(Dct,1)
-        num(j,i) = abs(D2cd_num(j,i)) * delta0(position(j,5)) + abs(Dct_num(j,i));
+        num(j,i) = abs(D2cd_num(j,i)) * delta0(i).^2 * 4.5 + abs(Dct_num(j,i));
     end
 end
 

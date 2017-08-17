@@ -10,13 +10,13 @@ load Q1
 delta0 = [0.9	30	9	3.6	8	3.8	6	14];
 
 syms Q t delta d
-C = Q / ((4 * pi * t)^1.5 * delta^0.5) * exp(-d^2 / (4 * delta * t));
+C = Q / (12 * 2^0.5 * pi^1.5 * t * delta) * exp(-d^2 / (18 * delta^2));
 
 for j = 1:size(density,2)-1
 	density_cur = density(:,j+1);		% 当前指标
 	for i = 1:length(position)
-		cd(i,j) = subs(C,{'Q','t','delta'},{density_cur(i),1,delta0(position(i,5))});	% cd 为 C 关于 d 的表达式
-		ct(i,j) = subs(C,{'Q','d','delta'},{density_cur(i),1,delta0(position(i,5))});	% ct 为 C 关于 t 的表达式
+		cd(i,j) = subs(C,{'Q','t','delta'},{density_cur(i),1,delta0(j)});	% cd 为 C 关于 d 的表达式
+		ct(i,j) = subs(C,{'Q','d','delta'},{density_cur(i),1,delta0(j)});	% ct 为 C 关于 t 的表达式
 	end
 end
 

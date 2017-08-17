@@ -32,57 +32,57 @@ T = [10	30	2	5	40	5	5	1];			% 各指标的毒性系数
 
 %% ******************************** 三维插值，城市三维地形图 *********************************
 
-% [X,Y,Z] = griddata(x,y,z,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
-% figure(1)
-% mesh(X,Y,Z);
-% xlabel('x/m')
-% ylabel('y/m')
-% zlabel('海拔/m')
-% title('城市三维地形图')
+[X,Y,Z] = griddata(x,y,z,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
+figure(1)
+mesh(X,Y,Z);
+xlabel('x/m')
+ylabel('y/m')
+zlabel('海拔/m')
+title('城市三维地形图')
 
 
 %% ******************************** 二维图，城市二维等高线图 *********************************
 % 1. 红：生活区 2. 黑：工业区 3. 蓝：山区 4. 紫：交通区 5. 绿：公园绿地区
 
-% [X,Y,Z] = griddata(x,y,z,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
-% figure(2)
-% hold on
-% ContourMap(X,Y,Z,x,y,function_zone,0);
-% xlabel('x/m')
-% ylabel('y/m')
-% title('城市二维等高线图')
-% hold off;
+[X,Y,Z] = griddata(x,y,z,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
+figure(2)
+hold on
+ContourMap(X,Y,Z,x,y,function_zone,0);
+xlabel('x/m')
+ylabel('y/m')
+title('城市二维等高线图')
+hold off;
 
 %% ******************************** 三维插值，把 z 轴变为浓度 *********************************
-% z1 = density(:,2);
-% [X,Y,Z] = griddata(x,y,z1,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
-% figure
-% hold on
-% ContourMap(X,Y,Z,x,y,function_zone,1)
-% xlabel('x(m)')
-% ylabel('y(m)')
-% hold off
-% colorbar
+z1 = density(:,2);
+[X,Y,Z] = griddata(x,y,z1,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
+figure
+hold on
+ContourMap(X,Y,Z,x,y,function_zone,1)
+xlabel('x(m)')
+ylabel('y(m)')
+hold off
+colorbar
 
 %% ******************************** 浓度和海拔的关系 *********************************
-% hold on
-% for i = 1:8
-% 	figure(i)
-% 	density_z = density(:,i+1);
-% 	for j = 1:62
-% 		index_z = find(z <= 5 * j & z >= 5 * j - 4);
-% 		mean5(j) = mean(density_z(index_z));
-% 	end
-% 	bar(5:5:310,mean5);
-%     xlabel('海拔(m)')
-%     if i == 2 || i == 5
-%         ylabel('浓度(μg/g)')
-%     else
-%         ylabel('浓度(ng/g')
-%     end
+hold on
+for i = 1:8
+	figure(i)
+	density_z = density(:,i+1);
+	for j = 1:62
+		index_z = find(z <= 5 * j & z >= 5 * j - 4);
+		mean5(j) = mean(density_z(index_z));
+	end
+	bar(5:5:310,mean5);
+    xlabel('海拔(m)')
+    if i == 2 || i == 5
+        ylabel('浓度(μg/g)')
+    else
+        ylabel('浓度(ng/g')
+    end
 
-% end
-% hold off
+end
+hold off
 
 %% ******************************** 浓度的平均值 *********************************
 pollute_average = [];
