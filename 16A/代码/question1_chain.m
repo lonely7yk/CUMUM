@@ -54,51 +54,16 @@ clear h
 load h		% 浸没高度
 f = h;
 % syms h
-count = 1;
-for sphere_m = 20:1:30
-	% v_wind = 36;
-	
-	cta_left = 0;
-	cta_right = 2;
-	for i = 1:4
-		minDelta = inf;
-		minH = 0;
-		stepLength = 0.1^i;
-		for cta = cta_left:stepLength:cta_right
-		    h = double(subs(f,'cta',cta));
-			% h = 0.769888;
-			% cta = 0;
-			[h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel_d,barrel_l,barrel_m,chain_num,chain_dl,chain_dm,sphere_m,cta,v_wind,M);
-		
-			%% ******************************** 找到总高度最接近 18 的 *********************************
-			delta = abs(h_all - 18);
-			if delta < minDelta
-				minDelta = delta;
-				minH = h;
-				minCta = cta;
-				cta_left = minCta - stepLength;
-				cta_right = minCta + stepLength;
-				minGama = gama2;
-				minBelta = belta;
-				minAlp = alp;
-			end
-		end
-	end
 
-	noteGama(count,1) = minGama(end);
-	count = count + 1;
-% end
+% for v_wind = 24:36
+v_wind = 12;
 
-minH
-minDelta
-minCta
-
-
-toc
-
-%% countHeight: 根据 h 计算总高
-function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel_d,barrel_l,barrel_m,chain_num,chain_dl,chain_dm,sphere_m,cta,v_wind,M)
-
+minDelta = inf;
+minH = 0;
+for cta = 1.84:0.001:1.86
+    h = double(subs(f,'cta',cta));
+	% h = 0.769888;
+	% cta = 0;
 	%% ******************************** 数据准备 *********************************
 	% V_inWater = p * g * h * pi;	% 浮标浸没体积
 	F_float = p * g * pi * h;			% 浮力
@@ -126,9 +91,16 @@ function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel
 	belta = countAngle(tube_T(4),barrel_T,tube_cta(4),barrel_cta,sphere_m * g);
 	
 	%% ******************************** 锚链 *********************************
+	% chain_cta0 = atand(barrel_T * sind(barrel_cta) ./ (barrel_T * cosd(barrel_cta) - sphere_m * g));
+	% chain_T0 = barrel_T * sind(barrel_cta) / sind(chain_cta0);
+	% chain_cta(1) = atand(chain_T0 * sind(chain_cta0) ./ (chain_T0 * cosd(chain_cta0) - (chain_dm + sphere_m) * g));
+	% chain_T(1) = chain_T0 * sind(chain_cta0) / sind(chain_cta(1));
+	% gama(1) = countAngle(chain_T0,chain_T(1),chain_cta0,chain_cta(1));
+	
 	chain_cta(1) = atand(barrel_T * sind(barrel_cta) ./ (barrel_T * cosd(barrel_cta) - chain_dm * g));
 	chain_T(1) = barrel_T * sind(barrel_cta) / sind(chain_cta(1));
 	gama(1) = countAngle(barrel_T,chain_T(1),barrel_cta,chain_cta(1));
+	gama2(1) = gama(1);
 	
 	for i = 2:chain_num
 		chain_cta(i) = atand(chain_T(i-1) * sind(chain_cta(i-1)) ./ (chain_T(i-1) * cosd(chain_cta(i-1)) - chain_dm * g));
@@ -137,13 +109,48 @@ function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel
 	    gama2(i) = gama(i) * (gama(i) > 0) + 90 * (gama(i) < 0);
 	end
 	
-	%% ******************************** 计算总高度 *********************************
+	% alp
+	% belta
+	% gama
+	
 	h1 = tube_l .* cosd(alp);
 	h2 = barrel_l .* cosd(belta);
 	h3 = chain_dl .* cosd(gama2);
+	% h1 = tube_l .* cosd(tube_cta);
+	% h2 = barrel_l .* cosd(barrel_cta);
+	% h3 = chain_dl .* cosd(chain_cta);
 	h_all = sum(h1) + h2 + sum(h3) + h;
+	% equal = h_all - 18;
+	% solve(equal)
+
+	delta = abs(h_all - 18);
+	if delta < minDelta
+		minDelta = delta;
+		minH = h;
+		minCta = cta;
+		minGama = gama2;
+		minBelta = belta;
+		minAlp = alp;
+	end
 end
 
+%% ******************************** 悬链线方程 *********************************
+% a = F_wind / 7;
+% syms x alpha
+% y = a * ch(x / a + log(tand(alpha) + secd(alpha))) - a * secd(alpha);
+% L = a * sh(x / a + log(tand(alpha) + secd(alpha))) - a * secd(alpha));
+% x0 = solve(L-22.05,x);
+% dy = diff(y,x);
+% dy0 = subs(dy,x,x0);
+
+minH
+minDelta
+minCta
+
+R_all = sum(tube_l .* sind(minAlp)) + barrel_l .* sind(minBelta) + sum(chain_dl .* sind(minGama))
+
+
+toc
 
 %% countAngle: 通过两个矢量立 来计算角度（力矩）
 function [a] = countAngle(T0,T1,cta0,cta1,G)

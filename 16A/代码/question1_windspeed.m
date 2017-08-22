@@ -55,7 +55,7 @@ load h		% 浸没高度
 f = h;
 % syms h
 count = 1;
-for sphere_m = 20:1:30
+for v_wind = 24:.1:25
 	% v_wind = 36;
 	
 	cta_left = 0;
@@ -87,7 +87,7 @@ for sphere_m = 20:1:30
 
 	noteGama(count,1) = minGama(end);
 	count = count + 1;
-% end
+end
 
 minH
 minDelta
@@ -98,6 +98,7 @@ toc
 
 %% countHeight: 根据 h 计算总高
 function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel_d,barrel_l,barrel_m,chain_num,chain_dl,chain_dm,sphere_m,cta,v_wind,M)
+	
 
 	%% ******************************** 数据准备 *********************************
 	% V_inWater = p * g * h * pi;	% 浮标浸没体积
