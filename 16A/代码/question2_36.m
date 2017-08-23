@@ -56,11 +56,11 @@ f = h;
 % syms h
 
 % for v_wind = 24:36
-v_wind = 24;
+v_wind = 36;
 
 minDelta = inf;
 minH = 0;
-for cta = 1.73:0.001:1.75
+for cta = 1.59:0.001:1.61
     h = double(subs(f,'cta',cta));
 	% h = 0.769888;
 	% cta = 0;
@@ -146,9 +146,10 @@ minH
 minDelta
 minCta
 
-a = F_wind ./ (7 * g);
-
 R_all = sum(tube_l .* sind(minAlp)) + barrel_l .* sind(minBelta) + sum(chain_dl .* sind(minGama))
+
+a = F_wind ./ (7 * g);
+alpha_up = 90 - minGama(end);
 
 temp_x = 0;
 temp_y = 0;
@@ -159,19 +160,20 @@ hold on;
 for i = 1:length(point)
 	k = tand(point(i));
 	temp_f = @(x) k * (x - temp_x) + temp_y;
-	ax1 = fplot(temp_f,[temp_x,temp_x + chain_dl * sind(temp_Gama(i))],'LineWidth',1.5,'Color','r');
+	fplot(temp_f,[temp_x,temp_x + chain_dl * sind(temp_Gama(i))],'LineWidth',1.5,'Color','r');
 	temp_x = temp_x + chain_dl * sind(temp_Gama(i));
 	temp_y = temp_y + chain_dl * cosd(temp_Gama(i));
 end
 
-a = F_wind ./ (7 * g);
-x_left = sum(temp_Gama == 90) * chain_dl;
-x_right = temp_x;
-f_Xuan = @(x) a * (ch((x - x_left) / a) - 1);
-ax2 = fplot(f_Xuan,[x_left,x_right],'--','LineWidth',2,'Color','b')
 
-legend([ax1,ax2],'分段函数','悬链线函数')
-hold off;
+a = F_wind ./ (7 * g);
+alpha_up = 90 - minGama(end);
+% x_left = sum(temp_Gama == 90) * chain_dl;
+x_right = temp_x;
+f_Xuan = @(x) a * ch(x / a + log(tand(alpha_up) + secd(alpha_up))) - a * secd(alpha_up);
+fplot(f_Xuan,[0,x_right])
+
+hold off
 
 % end
 

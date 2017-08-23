@@ -5,6 +5,7 @@ tic
 tand = @(x) tan(x * pi / 180);
 cosd = @(x) cos(x * pi / 180);
 sind = @(x) sin(x * pi / 180);
+secd = @(x) sec(x * pi / 180);
 atand = @(x) atan(x) * 180 / pi;
 acosd = @(x) acos(x) * 180 / pi;
 asind = @(x) asin(x) * 180 / pi;
@@ -53,19 +54,18 @@ clear h
 % h = f(1);   % 关于 cta 的sym，h 为浸没高度
 load h		% 浸没高度
 f = h;
-% syms h
+syms h
 
 % for v_wind = 24:36
 v_wind = 12;
 
 minDelta = inf;
 minH = 0;
-for cta = 1.84:0.001:1.86
-    h = double(subs(f,'cta',cta));
-	% h = 0.769888;
-	% cta = 0;
+% for cta = 1.84:0.001:1.86
+    % h = double(subs(f,'cta',cta));
+% 	h = 0.7;
+	cta = 0;
 	%% ******************************** 数据准备 *********************************
-	% V_inWater = p * g * h * pi;	% 浮标浸没体积
 	F_float = p * g * pi * h;			% 浮力
 	tube_float = p * g * pi * (tube_d / 2)^2 * tube_l;
 	barrel_float = p * g * pi * (barrel_d / 2)^2 * barrel_l;
@@ -90,49 +90,53 @@ for cta = 1.84:0.001:1.86
 	barrel_T = tube_T(4) * sind(tube_cta(4)) / sind(barrel_cta);
 	belta = countAngle(tube_T(4),barrel_T,tube_cta(4),barrel_cta,sphere_m * g);
 	
-	%% ******************************** 锚链 *********************************
-	% chain_cta0 = atand(barrel_T * sind(barrel_cta) ./ (barrel_T * cosd(barrel_cta) - sphere_m * g));
-	% chain_T0 = barrel_T * sind(barrel_cta) / sind(chain_cta0);
-	% chain_cta(1) = atand(chain_T0 * sind(chain_cta0) ./ (chain_T0 * cosd(chain_cta0) - (chain_dm + sphere_m) * g));
-	% chain_T(1) = chain_T0 * sind(chain_cta0) / sind(chain_cta(1));
-	% gama(1) = countAngle(chain_T0,chain_T(1),chain_cta0,chain_cta(1));
-	
-	chain_cta(1) = atand(barrel_T * sind(barrel_cta) ./ (barrel_T * cosd(barrel_cta) - chain_dm * g));
-	chain_T(1) = barrel_T * sind(barrel_cta) / sind(chain_cta(1));
-	gama(1) = countAngle(barrel_T,chain_T(1),barrel_cta,chain_cta(1));
-	gama2(1) = gama(1);
-	
-	for i = 2:chain_num
-		chain_cta(i) = atand(chain_T(i-1) * sind(chain_cta(i-1)) ./ (chain_T(i-1) * cosd(chain_cta(i-1)) - chain_dm * g));
-		chain_T(i) = chain_T(i-1) * sind(chain_cta(i-1)) / sind(chain_cta(i));
-		gama(i) = countAngle(chain_T(i-1),chain_T(i),chain_cta(i-1),chain_cta(i));
-	    gama2(i) = gama(i) * (gama(i) > 0) + 90 * (gama(i) < 0);
-	end
-	
-	% alp
-	% belta
-	% gama
-	
-	h1 = tube_l .* cosd(alp);
-	h2 = barrel_l .* cosd(belta);
-	h3 = chain_dl .* cosd(gama2);
-	% h1 = tube_l .* cosd(tube_cta);
-	% h2 = barrel_l .* cosd(barrel_cta);
-	% h3 = chain_dl .* cosd(chain_cta);
-	h_all = sum(h1) + h2 + sum(h3) + h;
-	% equal = h_all - 18;
-	% solve(equal)
+	%% ******************************** 锚链（悬链线1） *********************************
+% 	a = F_wind / 7;
+% 	syms x
+% 	alpha_up = 0;
+% 	y = a * ch(x / a + log(tand(alpha_up) + secd(alpha_up))) - a * secd(alpha_up);
+% 	L = a * sh(x / a + log(tand(alpha_up) + secd(alpha_up))) - a * secd(alpha_up);
+% 	% x0 = solve(L-22.05,x);
+% 	dy = diff(y,x);
+% 	x0 = solve(dy - tand(90 - barrel_cta),x);
+% 	x0 = real(abs(x0(2)));
+% %     h3 = subs(y,'x',x0);
+% 	h3 = double(subs(y,'x',x0));
 
-	delta = abs(h_all - 18);
-	if delta < minDelta
-		minDelta = delta;
-		minH = h;
-		minCta = cta;
-		minGama = gama2;
-		minBelta = belta;
-		minAlp = alp;
-	end
-end
+	%% ******************************** 悬链线2 *********************************
+% 	a = F_wind / 7;
+% 	syms x alpha_up
+% 	y = a * ch(x / a + log(tand(alpha_up) + secd(alpha_up))) - a * secd(alpha_up);
+% 	L = a * sh(x / a + log(tand(alpha_up) + secd(alpha_up))) - a * secd(alpha_up);
+% 	dy = diff(y,x);
+% 	x0 = solve(dy - tand(90 - barrel_cta),x);
+% 	x0 = real(abs(x0(2)));
+%     L = subs(L,'x',x0);
+% 	alpha_up0 = solve(L - 22.05,alpha_up);
+%     alpha_up0 = real(abs(alpha_up0(1)));
+% 	x0 = subs(x0,'alpha_up',alpha_up0);
+% %     h31 = subs(y,'x',x0);
+% %     h32 = subs(h31,'alpha_up',alpha_up0);
+% 	h3 = double(subs(y,{'x','alpha_up'},{x0,alpha_up0}));
+
+
+	
+% 	h1 = tube_l .* cosd(alp);
+% 	h2 = barrel_l .* cosd(belta);
+% 	% h3 = chain_dl .* cosd(gama2);
+% 	h_all = sum(h1) + h2 + sum(h3) + h
+%     solve(h_all-18)
+    
+	% delta = abs(h_all - 18);
+	% if delta < minDelta
+	% 	minDelta = delta;
+	% 	minH = h;
+	% 	minCta = cta;
+	% 	minGama = gama2;
+	% 	minBelta = belta;
+	% 	minAlp = alp;
+	% end
+% end
 
 %% ******************************** 悬链线方程 *********************************
 % a = F_wind / 7;
@@ -143,11 +147,11 @@ end
 % dy = diff(y,x);
 % dy0 = subs(dy,x,x0);
 
-minH
-minDelta
-minCta
+% minH
+% minDelta
+% minCta
 
-R_all = sum(tube_l .* sind(minAlp)) + barrel_l .* sind(minBelta) + sum(chain_dl .* sind(minGama))
+% R_all = sum(tube_l .* sind(minAlp)) + barrel_l .* sind(minBelta) + sum(chain_dl .* sind(minGama))
 
 
 toc

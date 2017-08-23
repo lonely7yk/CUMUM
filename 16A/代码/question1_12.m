@@ -143,6 +143,7 @@ for cta = 1.84:0.001:1.86
 	end
 end
 
+a = F_wind ./ (7 * g);
 minH
 minDelta
 minCta
@@ -158,16 +159,18 @@ hold on;
 for i = 1:length(point)
 	k = tand(point(i));
 	temp_f = @(x) k * (x - temp_x) + temp_y;
-	fplot(temp_f,[temp_x,temp_x + chain_dl * sind(temp_Gama(i))],'LineWidth',1.5,'Color','r');
+	ax1 = fplot(temp_f,[temp_x,temp_x + chain_dl * sind(temp_Gama(i))],'LineWidth',1.5,'Color','r');
 	temp_x = temp_x + chain_dl * sind(temp_Gama(i));
 	temp_y = temp_y + chain_dl * cosd(temp_Gama(i));
 end
 
-% a = F_wind ./ 7;
-% x_left = sum(temp_Gama == 90) * chain_dl;
-% x_right = temp_x;
-% f_Xuan = @(x) a * (ch((x - x_left) / a) - 1);
-% fplot(f_Xuan,[x_left,x_right])
+a = F_wind ./ (7 * g);
+x_left = sum(temp_Gama == 90) * chain_dl;
+x_right = temp_x;
+f_Xuan = @(x) a * (ch((x - x_left) / a) - 1);
+ax2 = fplot(f_Xuan,[x_left,x_right],'--','LineWidth',2,'Color','b')
+
+legend([ax1,ax2],'分段函数','悬链线函数')
 
 hold off;
 

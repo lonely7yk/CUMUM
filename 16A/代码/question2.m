@@ -33,8 +33,13 @@ tube_d = 0.05;		% 钢管直径
 barrel_m = 100;		% 钢桶的质量
 barrel_l = 1;		% 钢桶长度
 barrel_d = 0.3;		% 钢桶直径
-% 重物球属性
-sphere_m = 1200;	% 重物球的质量
+% 标准化中间量
+belta0  = 0.0442 ;
+belta1 = 8.1960;
+H0 = 0.7706;
+H1 = 1.9753 ;
+R0 = 12.6213 ;
+R1 = 18.7344 ;
 
 % alp = zeros(4,1);	% 钢管倾斜角
 % belta = 0;			% 钢桶倾斜角
@@ -53,17 +58,20 @@ clear h
 % h = f(1);   % 关于 cta 的sym，h 为浸没高度
 load h		% 浸没高度
 f = h;
+
+v_wind = 36;
 % syms h
 count = 1;
-for sphere_m = 20:1:30
-	% v_wind = 36;
-	
+minTarget = inf;
+for sphere_m = 0:100:5200
+% 	sphere_m = 1200;
+
 	cta_left = 0;
-	cta_right = 2;
-	for i = 1:4
+	cta_right = 5;
+	for i = 1:5
 		minDelta = inf;
 		minH = 0;
-		stepLength = 0.1^i;
+		stepLength = 0.1^(i-1);
 		for cta = cta_left:stepLength:cta_right
 		    h = double(subs(f,'cta',cta));
 			% h = 0.769888;
@@ -84,20 +92,52 @@ for sphere_m = 20:1:30
 			end
 		end
 	end
+% 
+% 	minH
+% 	minBelta
+%     minGama
+	R_all = sum(tube_l .* sind(minAlp)) + barrel_l .* sind(minBelta) + sum(chain_dl .* sind(minGama));
 
-	noteGama(count,1) = minGama(end);
-	count = count + 1;
-% end
+	noteGama(count,1) = 90 - minGama(end);
+	noteBelta(count,1) = minBelta;
 
-minH
-minDelta
-minCta
+    %% ******************************** 找目标最小值 *********************************
+ 	anchor_angle = 90 - minGama(end);
+ 	barrel_angle = minBelta;
+ 	if anchor_angle > 16 || barrel_angle > 5
+ 		curTarget(count,1) = inf;
+ 	else
+ 		standize_belta = standize(minBelta,belta0,belta1);
+ 		standize_H = standize(minH,H0,H1);
+ 		standize_R = standize(R_all,R0,R1);
+ 		curTarget(count,1) = 0.25*standize_belta + 0.5*standize_H + 0.25*standize_R;
+%  		curTarget(count,1) = standize(minBelta,belta0,belta1) + standize(minH,H0,H1) + standize(R_all,R0,R1);
+ 		% curTarget = minBelta * minH * R_all;
+ 	end
+
+ 	curBelta(count,1) = minBelta;
+ 	curH(count,1) = minH;
+ 	curR(count,1) = R_all;
+
+ 	if curTarget(count,1) < minTarget
+ 		minTarget = curTarget(count,1);
+ 		minSphere = sphere_m;
+ 	end
+
+    count = count + 1;
+ 	
+end
+
+% minH
+% minDelta
+% minCta
 
 
 toc
 
 %% countHeight: 根据 h 计算总高
 function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel_d,barrel_l,barrel_m,chain_num,chain_dl,chain_dm,sphere_m,cta,v_wind,M)
+	
 
 	%% ******************************** 数据准备 *********************************
 	% V_inWater = p * g * h * pi;	% 浮标浸没体积
@@ -129,6 +169,7 @@ function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel
 	chain_cta(1) = atand(barrel_T * sind(barrel_cta) ./ (barrel_T * cosd(barrel_cta) - chain_dm * g));
 	chain_T(1) = barrel_T * sind(barrel_cta) / sind(chain_cta(1));
 	gama(1) = countAngle(barrel_T,chain_T(1),barrel_cta,chain_cta(1));
+	gama2(1) = gama(1) * (gama(1) > 0) + 90 * (gama(1) < 0);
 	
 	for i = 2:chain_num
 		chain_cta(i) = atand(chain_T(i-1) * sind(chain_cta(i-1)) ./ (chain_T(i-1) * cosd(chain_cta(i-1)) - chain_dm * g));
@@ -157,4 +198,9 @@ function [a] = countAngle(T0,T1,cta0,cta1,G)
 		Fy = T1 * cosd(cta1) + T0 * cosd(cta0) + G;
 	end
 	a = atand(Fx / Fy);
+end
+
+%% standize: 标准化
+function [result] = standize(belta,belta0,belta1)
+	result = (belta - belta0) ./ (belta1 - belta0);
 end
