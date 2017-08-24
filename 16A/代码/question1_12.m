@@ -1,3 +1,7 @@
+%--------------------------------------------------------------------------
+%             question1_12.m  风速 12 m/s 时的各参数
+%--------------------------------------------------------------------------
+
 clc,clear
 close all
 tic
@@ -36,24 +40,9 @@ barrel_d = 0.3;		% 钢桶直径
 % 重物球属性
 sphere_m = 1200;	% 重物球的质量
 
-% alp = zeros(4,1);	% 钢管倾斜角
-% belta = 0;			% 钢桶倾斜角
-% gama = zeros(int16(chain_num),1); % 锚链倾斜角
-% tube_cta = alp;		% 钢管受力（下）倾斜角
-% tube_T = alp;
-% barrel_cta = belta; % 钢桶受力（下）倾斜角
-% barrel_T = belta;
-% chain_cta = gama;	% 锚链受力（下）倾斜角
-% chain_T = gama;
-
-%% ******************************** 计算 h 和 cta 的关系 *********************************
-% f = (1/h + 1/2) ./ (p * g * pi * h - M * g) * 0.625 * ((2 - h) * cosd(cta) * 2 + pi / 2 * sind(cta)) * v_wind.^2 - tand(cta);
-% f = solve(f,h);
 clear h
-% h = f(1);   % 关于 cta 的sym，h 为浸没高度
 load h		% 浸没高度
 f = h;
-% syms h
 
 % for v_wind = 24:36
 v_wind = 12;
@@ -91,12 +80,6 @@ for cta = 1.84:0.001:1.86
 	belta = countAngle(tube_T(4),barrel_T,tube_cta(4),barrel_cta,sphere_m * g);
 	
 	%% ******************************** 锚链 *********************************
-	% chain_cta0 = atand(barrel_T * sind(barrel_cta) ./ (barrel_T * cosd(barrel_cta) - sphere_m * g));
-	% chain_T0 = barrel_T * sind(barrel_cta) / sind(chain_cta0);
-	% chain_cta(1) = atand(chain_T0 * sind(chain_cta0) ./ (chain_T0 * cosd(chain_cta0) - (chain_dm + sphere_m) * g));
-	% chain_T(1) = chain_T0 * sind(chain_cta0) / sind(chain_cta(1));
-	% gama(1) = countAngle(chain_T0,chain_T(1),chain_cta0,chain_cta(1));
-	
 	chain_cta(1) = atand(barrel_T * sind(barrel_cta) ./ (barrel_T * cosd(barrel_cta) - chain_dm * g));
 	chain_T(1) = barrel_T * sind(barrel_cta) / sind(chain_cta(1));
 	gama(1) = countAngle(barrel_T,chain_T(1),barrel_cta,chain_cta(1));
@@ -108,29 +91,11 @@ for cta = 1.84:0.001:1.86
 		gama(i) = countAngle(chain_T(i-1),chain_T(i),chain_cta(i-1),chain_cta(i));
 	    gama2(i) = gama(i) * (gama(i) > 0) + 90 * (gama(i) < 0);
 	end
-	
-	%% ******************************** 悬链线方程 *********************************
-	% a = F_wind / 7;
-	% syms x alpha
-	% y = a * ch(x / a + log(tand(alpha) + secd(alpha))) - a * secd(alpha);
-	% L = a * sh(x / a + log(tand(alpha) + secd(alpha))) - a * secd(alpha));
-	% x0 = solve(L-22.05,x);
-	% dy = diff(y,x);
-	% dy0 = subs(dy,x,x0);
-	
-	% alp
-	% belta
-	% gama
-	
+
 	h1 = tube_l .* cosd(alp);
 	h2 = barrel_l .* cosd(belta);
 	h3 = chain_dl .* cosd(gama2);
-	% h1 = tube_l .* cosd(tube_cta);
-	% h2 = barrel_l .* cosd(barrel_cta);
-	% h3 = chain_dl .* cosd(chain_cta);
 	h_all = sum(h1) + h2 + sum(h3) + h;
-	% equal = h_all - 18;
-	% solve(equal)
 
 	delta = abs(h_all - 18);
 	if delta < minDelta
@@ -140,6 +105,7 @@ for cta = 1.84:0.001:1.86
 		minGama = gama2;
 		minBelta = belta;
 		minAlp = alp;
+        minFwind = F_wind;
 	end
 end
 

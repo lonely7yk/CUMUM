@@ -1,5 +1,9 @@
+%--------------------------------------------------------------------------
+%             用遗传算法来解问题三
+%--------------------------------------------------------------------------
 clc,clear
-close all
+% close all
+figure
 tic
 % 将弧度转换为度数
 tand = @(x) tan(x * pi / 180);
@@ -12,10 +16,11 @@ sh = @(x) (exp(x) - exp(-x)) ./ 2;
 ch = @(x) (exp(x) + exp(-x)) ./ 2; 
 
 %% ******************************** 数据初始化 *********************************
-
 % 锚链的种类
 global MODE
 MODE = 1;
+
+global cta v_wind seaHeight belta0 belta1 H0 H1 R0 R1
 
 p = 1.025 * 10^3;	% 海水密度
 g = 9.8;			% 重力加速度
@@ -43,73 +48,70 @@ barrel_d = 0.3;		% 钢桶直径
 barrel_G = barrel_m * g;	% 钢桶总重力
 barrel_allFloat = pi * (barrel_d / 2)^2 * barrel_l * p * g;	% 钢桶的浮力
 % 标准化中间量
-belta0  = 3.9138;
+belta0  = 3.8973;
 belta1 = 13.6020;
 H0 = 0.7553;
-H1 = 1.8803;
-R0 = 12.7786;
+H1 = 1.8871;
+R0 = 10.3100;
 R1 = 29.2537;
 
-
+%% ******************************** 使用遗传算法计算 *********************************
+seaHeight = 16;		% 海水深度
 v_wind = 36;		% 风速
 minTarget = inf;
-sphere_m = 3000;	% 球的质量
-seaHeight = 16;		% 海水深度
 allFloat = tube_allFloat + barrel_allFloat + F_allFloat;	% 所有最大浮力和
 cta = 0;			% 浮标倾斜角
 
-counti = 1;
+% counti = 1;
 % for seaHeight = 16:0.1:20
-for chain_L = 16:1:16		% 取不同长度的锚链
-	chain_num = ceil(chain_L ./ chain_dl);	% 锚链环的数量
-	chain_G = chain_num * chain_dm * g;		% 锚链总质量
-	allG = chain_G + tube_allG + barrel_G + buoy_G;		% 总重力
-	sphere_maxM = (allFloat - allG) ./ g;	% 金属球允许的最大质量
+% for chain_L = 25:1:28		% 取不同长度的锚链
+	% chain_num = ceil(chain_L ./ chain_dl);	% 锚链环的数量
+	% chain_G = chain_num * chain_dm * g;		% 锚链总质量
+	% allG = chain_G + tube_allG + barrel_G + buoy_G;		% 总重力
+	% sphere_maxM = (allFloat - allG) ./ g;	% 金属球允许的最大质量
 
-	sphere_maxBian = min(sphere_maxM,4500);		% 遍历最大值
+	% sphere_maxBian = min(sphere_maxM,4500);		% 遍历最大值
 
-	countj = 1;
-	for sphere_m = 1500:100:1500
+	% countj = 1;
+	% for sphere_m = 3700:100:4000
 		
-		[R_all,minDelta,minAlp,minBelta,minGama,minH] = judgeHeight(chain_num,sphere_m,cta,v_wind,seaHeight);
+		% [R_all,minDelta,minAlp,minBelta,minGama,minH] = judgeHeight(chain_num,sphere_m,cta,v_wind,seaHeight);
 
-		noteGama(countj,counti) = 90 - minGama(end);
-		noteBelta(countj,counti) = minBelta;
+		% noteGama(countj,counti) = 90 - minGama(end);
+		% noteBelta(countj,counti) = minBelta;
+
 	
     	%% ******************************** 找目标最小值 *********************************
- 		anchor_angle = 90 - minGama(end);
- 		barrel_angle = minBelta;
- 		if anchor_angle > 16 || barrel_angle > 5
- 			curTarget(countj,counti) = inf;
- 		else
- 			standize_belta = standize(minBelta,belta0,belta1);
- 			standize_H = standize(minH,H0,H1);
- 			standize_R = standize(R_all,R0,R1);
- 			curTarget(countj,counti) = 0.25*standize_belta + 0.5*standize_H + 0.25*standize_R;
- 			% curTarget(countj,1) = standize(minBelta,belta0,belta1) + standize(minH,H0,H1) + standize(R_all,R0,R1);
- 			% curTarget = minBelta * minH * R_all;
- 		end
+ 		% anchor_angle = 90 - minGama(end);
+ 		% barrel_angle = minBelta;
+ 		% if anchor_angle > 16 || barrel_angle > 5
+ 		% 	curTarget(countj,counti) = inf;
+ 		% else
+ 		% 	standize_belta = standize(minBelta,belta0,belta1);
+ 		% 	standize_H = standize(minH,H0,H1);
+ 		% 	standize_R = standize(R_all,R0,R1);
+ 		% 	curTarget(countj,counti) = 0.25*standize_belta + 0.5*standize_H + 0.25*standize_R;
+ 		% 	% curTarget(countj,1) = standize(minBelta,belta0,belta1) + standize(minH,H0,H1) + standize(R_all,R0,R1);
+ 		% 	% curTarget = minBelta * minH * R_all;
+ 		% end
 	
- 		curBelta(countj,counti) = minBelta;
- 		curH(countj,counti) = minH;
- 		curR(countj,counti) = R_all;
+ 		% curBelta(countj,counti) = minBelta;
+ 		% curH(countj,counti) = minH;
+ 		% curR(countj,counti) = R_all;
 	
- 		if curTarget(countj,counti) < minTarget
- 			minTarget = curTarget(countj,counti);
- 			minSphere = sphere_m;
- 			minChainL = chain_L;
- 		end
+ 		% if curTarget(countj,counti) < minTarget
+ 		% 	minTarget = curTarget(countj,counti);
+ 		% 	minSphere = sphere_m;
+ 		% 	minChainL = chain_L;
+ 		% end
 	
-    	countj = countj + 1;
- 	end
- 	counti = counti + 1;
-end	
+%     	countj = countj + 1;
+%  	end
+%  	counti = counti + 1;
+% end	
 % end
 
-% minH
-% minDelta
-% minCta
-
+[Y,X] = GA_Sheffield(2,[14 1200],[30 4500],0)
 
 toc
 
@@ -259,4 +261,125 @@ end
 %% standize: 标准化
 function [result] = standize(belta,belta0,belta1)
 	result = (belta - belta0) ./ (belta1 - belta0);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 遗传算法工具箱 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Fitness: 适应度函数
+function [ObjV] = Fitness(X)
+	global MODE
+	global cta;
+	global v_wind;
+	global seaHeight;
+	global belta0 belta1 H0 H1 R0 R1;
+	chain_alldl = [0.078 0.105 0.120 0.150 0.180];
+	chain_dl = chain_alldl(MODE);	% 锚链的每节链环长度
+	for i = 1:size(X,1)
+		chain_L = X(i,1);
+		sphere_m = X(i,2);
+		chain_num = ceil(chain_L ./ chain_dl);	% 锚链环的数量
+		[R_all,minDelta,minAlp,minBelta,minGama,minH] = judgeHeight(chain_num,sphere_m,cta,v_wind,seaHeight);
+		[~,~,~,minBelta2,minGama2,~] = judgeHeight(chain_num,sphere_m,cta,v_wind,20);
+		anchor_angle = 90 - minGama(end);		% 起锚角
+		barrel_angle = minBelta;				% 钢桶的倾斜角
+		anchor_angle2 = 90 - minGama2(end);
+		barrel_angle2 = minBelta2;
+		if anchor_angle > 16 || barrel_angle > 5 || anchor_angle2 > 16 || barrel_angle2 > 5
+			ObjV(i,1) = 1;
+		else
+			standize_belta = standize(minBelta,belta0,belta1);
+			standize_H = standize(minH,H0,H1);
+			standize_R = standize(R_all,R0,R1);
+			ObjV(i,1) = 0.25*standize_belta + 0.5*standize_H + 0.25*standize_R;
+		end
+	end
+end
+
+%% GA_Sheffield: 谢菲尔德工具箱遗传算法
+% 千万注意是求最大值还是最小值需要改变 ranking 括号里的正负 和 '[Y,I] = min(ObjV);'
+function [trace,noteExtrem,extremY,extremX] = GA_Sheffield(nvars,lb,ub,command)
+	% input
+	% nvars = 2;		% 变量数量
+	% lb = [0 0]; ub = [10 10]; % lb 为变量下限，ub 为上限，均为行向量，长度与 nvars 相等
+	% command : 0 表示求最小值，1 表示求最大值，默认为 0
+	% output
+	% trace : n+1 行，表示 n 个变量和 1 个结果；MAXGEN 列，每列表示一代的结果
+	% noteExtrem : n+1 行，表示 n 个变量和 1 个结果；MAXGEN 列，每列表示到目前为止的最优结果
+	% extremY : 最优 Y
+	% extremX : 最优 Y 对应 X
+	
+	if nargin < 4
+		command = 0;
+	end
+	
+	% 遗传参数（请根据具体情况修改！！）
+	NIND = 20;		% 种群大小
+	MAXGEN = 5;	% 最大遗传代数
+	PRECI = 20;		% 个体长度
+	GGAP = 0.9;	% 代沟
+	px = 0.7;		% 交叉概率
+	pm = 0.05;		% 变异概率
+	trace = zeros(nvars+1,MAXGEN);	% 寻优过程因变量和自变量
+	noteExtrem = zeros(nvars+1,MAXGEN);	% 寻优过程最优因变量和自变量
+	
+	% 区域描述器 1：个体长度 2、3：上下界 4：编码方式（1为二进制 0为格雷码）
+	% 5：子串使用刻度（0为算数 1为对数） 6、7：范围是否包含边界（1为是 0为否）
+	FiledD = [repmat(PRECI,1,nvars);lb;ub; repmat([1;0;1;1],[1,nvars])];	
+	Chrom = crtbp(NIND,PRECI * nvars);		% 随机种群（40 * 20）
+	
+	gen = 0;
+	X = bs2rv(Chrom,FiledD);
+	ObjV = Fitness(X);		% Fitness 需根据需求重写
+
+	if command == 0
+		extremY = inf;	% 求最小值
+	else
+		extremY = 0;	% 求最大值
+	end
+
+	extremX = zeros(1,nvars);	% 取到最大或最小时的 X 取值
+	while gen < MAXGEN
+		if command == 1
+			temp_ObjV = -ObjV;	% 如果计算最大值就取相反数
+		else
+			temp_ObjV = ObjV;
+		end
+		FitnV = ranking(temp_ObjV);					% 适应度值（适应度越大个体越好，越有可能被选中）
+		SelCh = select('sus',Chrom,FitnV,GGAP);	% 选择
+		SelCh = recombin('xovsp',SelCh,px);		% 重组
+		SelCh = mut(SelCh,pm);					% 变异
+		X = bs2rv(SelCh,FiledD);				% 子代个体的十进制转换
+	    ObjVSel = Fitness(X);
+		[Chrom,ObjV] = reins(Chrom,SelCh,1,1,ObjV,ObjVSel);	% 重插入
+		X = bs2rv(Chrom,FiledD);
+		gen = gen + 1;
+
+		if command == 0
+			[Y,I] = min(ObjV);
+			% 求最小值
+			if extremY > Y
+				extremY = Y;
+				extremX = X(I,:);
+			end
+		else
+			[Y,I] = max(ObjV);
+			% 求最大值
+			if extremY < Y
+				extremY = Y;
+				extremX = X(I,:);
+			end
+		end
+
+		trace(1:end-1,gen) = X(I,:);	% 当代最优值对应的 X
+		trace(end,gen) = Y;		% 当代最优值对应的 Y
+		
+		noteExtrem(1:end-1,gen) = extremX;
+		noteExtrem(end,gen) = extremY;
+	end
+	
+	% hold on
+	plot(1:MAXGEN,noteExtrem(end,:));
+	xlabel('进化代数')
+	ylabel('最优解变化')
+	title('进化过程')
 end

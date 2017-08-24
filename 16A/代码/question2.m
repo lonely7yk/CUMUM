@@ -63,7 +63,7 @@ v_wind = 36;
 % syms h
 count = 1;
 minTarget = inf;
-for sphere_m = 0:100:5200
+for sphere_m = 1850:1:1870
 % 	sphere_m = 1200;
 
 	cta_left = 0;

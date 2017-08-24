@@ -1,3 +1,10 @@
+%--------------------------------------------------------------------------
+%             question3_weight.m    计算归一化的权重
+%--------------------------------------------------------------------------
+
+clc,clear
+close all
+
 clc,clear
 close all
 tic
@@ -15,16 +22,23 @@ ch = @(x) (exp(x) + exp(-x)) ./ 2;
 syms cta
 syms h
 
+% 锚链的种类
+MODE = 5;
+chain_L = 14;
+sphere_m = 4500;
+
 p = 1.025 * 10^3;	% 海水密度
 g = 9.8;			% 重力加速度
 M = 1000;			% 浮标重量
 % v_wind = 36;		% 风速
 F_float = 0;		% 浮标浮力
 % 锚链属性
-chain_dl = 0.105;	% 锚链的每节链环长度
-chain_dm = 7 * chain_dl;		% 锚链的每节质量
-chain_L = 22.05;	% 锚链总长
-chain_num = chain_L ./ chain_dl;	% 锚链个数
+chain_alldl = [0.078 0.105 0.120 0.150 0.180];
+chain_alldm = [3.2 7 12.5 19.5 28.12];
+chain_dl = chain_alldl(MODE);	% 锚链的每节链环长度
+chain_dm = chain_alldm(MODE) * chain_dl;		% 锚链的每节质量
+% chain_L = 22.05;	% 锚链总长
+% chain_num = chain_L ./ chain_dl;	% 锚链个数
 % 钢管属性
 tube_m = 10;		% 钢管质量
 tube_l = 1;			% 钢管长度
@@ -33,107 +47,66 @@ tube_d = 0.05;		% 钢管直径
 barrel_m = 100;		% 钢桶的质量
 barrel_l = 1;		% 钢桶长度
 barrel_d = 0.3;		% 钢桶直径
-% 标准化中间量
-belta0  = 0.0442 ;
-belta1 = 8.1960;
-H0 = 0.7706;
-H1 = 1.9753 ;
-R0 = 12.6213 ;
-R1 = 18.7344 ;
-
-% alp = zeros(4,1);	% 钢管倾斜角
-% belta = 0;			% 钢桶倾斜角
-% gama = zeros(int16(chain_num),1); % 锚链倾斜角
-% tube_cta = alp;		% 钢管受力（下）倾斜角
-% tube_T = alp;
-% barrel_cta = belta; % 钢桶受力（下）倾斜角
-% barrel_T = belta;
-% chain_cta = gama;	% 锚链受力（下）倾斜角
-% chain_T = gama;
 
 %% ******************************** 计算 h 和 cta 的关系 *********************************
 % f = (1/h + 1/2) ./ (p * g * pi * h - M * g) * 0.625 * ((2 - h) * cosd(cta) * 2 + pi / 2 * sind(cta)) * v_wind.^2 - tand(cta);
 % f = solve(f,h);
-clear h
+% clear h
 % h = f(1);   % 关于 cta 的sym，h 为浸没高度
-load h		% 浸没高度
-f = h;
+% load h		% 浸没高度
+% f = h;
 
 v_wind = 36;
 % syms h
 count = 1;
 minTarget = inf;
-for sphere_m = 1800:100:5200
-% 	sphere_m = 1200;
+seaHeight = 16;
+% for seaHeight = 16:0.1:20
+% for chain_L = 18:0.5:25		% 取不同长度的锚链
+chain_num = ceil(chain_L ./ chain_dl);	% 锚链环的数量
 
-	cta_left = 0;
-	cta_right = 5;
-	for i = 1:5
-		minDelta = inf;
-		minH = 0;
-		stepLength = 0.1^(i-1);
-		for cta = cta_left:stepLength:cta_right
-		    h = double(subs(f,'cta',cta));
-			% h = 0.769888;
-			% cta = 0;
-			[h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel_d,barrel_l,barrel_m,chain_num,chain_dl,chain_dm,sphere_m,cta,v_wind,M);
 		
-			%% ******************************** 找到总高度最接近 18 的 *********************************
-			delta = abs(h_all - 18);
-			if delta < minDelta
-				minDelta = delta;
-				minH = h;
-				minCta = cta;
-				cta_left = minCta - stepLength;
-				cta_right = minCta + stepLength;
-				minGama = gama2;
-				minBelta = belta;
-				minAlp = alp;
-			end
+h_left = 0;
+h_right = 2;
+for i = 1:4
+	minDelta = inf;
+	minH = 0;
+	stepLength = 0.1^i;
+	for h = h_left:stepLength:h_right
+	    % h = double(subs(f,'cta',cta));
+		% h = 0.769888;
+		cta = 0;
+		[h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel_d,barrel_l,barrel_m,chain_num,chain_dl,chain_dm,sphere_m,cta,v_wind,M);
+         
+		%% ******************************** 找到总高度最接近 18 的 *********************************
+		delta = abs(h_all - seaHeight);
+		if delta < minDelta
+			minDelta = delta;
+			minH = h;
+             minHall = h_all;
+			minCta = cta;
+			h_left = max([minH - stepLength,0]);
+			h_right = min([minH + stepLength,2]);
+			minGama = gama2;
+			minBelta = belta;
+			minAlp = alp;
 		end
 	end
-% 
-% 	minH
-% 	minBelta
-%     minGama
-	R_all = sum(tube_l .* sind(minAlp)) + barrel_l .* sind(minBelta) + sum(chain_dl .* sind(minGama));
-
-	noteGama(count,1) = 90 - minGama(end);
-	noteBelta(count,1) = minBelta;
-
-    %% ******************************** 找目标最小值 *********************************
- 	anchor_angle = 90 - minGama(end);
- 	barrel_angle = minBelta;
- 	if anchor_angle > 16 || barrel_angle > 5
- 		curTarget(count,1) = inf;
- 	else
- 		standize_belta = standize(minBelta,belta0,belta1);
- 		standize_H = standize(minH,H0,H1);
- 		standize_R = standize(R_all,R0,R1);
- 		curTarget(count,1) = 0.25*standize_belta + 0.5*standize_H + 0.25*standize_R;
-%  		curTarget(count,1) = standize(minBelta,belta0,belta1) + standize(minH,H0,H1) + standize(R_all,R0,R1);
- 		% curTarget = minBelta * minH * R_all;
- 	end
-
- 	if curTarget(count,1) < minTarget
- 		minTarget = curTarget(count,1);
- 		minSphere = sphere_m;
- 	end
-
-    count = count + 1;
- 	
 end
 
-% minH
-% minDelta
-% minCta
+if minDelta > 0.1
+	error('最小误差大于 0.1\n');
+end
 
-
+(tube_l .* sind(minAlp)) + barrel_l .* sind(minBelta) + sum(chain_dl .* sind(minGama));
+ 
+result = [minH,minBelta,R_all];
 toc
 
 %% countHeight: 根据 h 计算总高
 function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel_d,barrel_l,barrel_m,chain_num,chain_dl,chain_dm,sphere_m,cta,v_wind,M)
 	
+	v_water = 1.5;
 
 	%% ******************************** 数据准备 *********************************
 	% V_inWater = p * g * h * pi;	% 浮标浸没体积
@@ -141,9 +114,12 @@ function [h_all,alp,belta,gama2] = countHeight(h,p,g,tube_d,tube_l,tube_m,barrel
 	tube_float = p * g * pi * (tube_d / 2)^2 * tube_l;
 	barrel_float = p * g * pi * (barrel_d / 2)^2 * barrel_l;
 	S_wind = (2 - h) * cosd(cta) * 2 + pi / 2 * sind(cta);	% 风投影面积
+	S_water = h * cosd(cta) * 2 + pi / 2 * sind(cta);	% 风投影面积
 	F_wind = 0.625 * S_wind * v_wind^2;		% 风力
-	cta0 = atand(F_wind ./ (F_float - M * g));	% 浮标所受拉力的倾斜角度
-	T0 = F_wind ./ sind(cta0);				% 浮标所受拉力大小
+	F_water = 374 * S_water * v_water^2;	% 水流力
+	F_x = F_wind + F_water;
+	cta0 = atand(F_x ./ (F_float - M * g));	% 浮标所受拉力的倾斜角度
+	T0 = F_x ./ sind(cta0);				% 浮标所受拉力大小
 	
 	%% ******************************** 钢管 *********************************
 	tube_cta(1) = atand(T0 * sind(cta0) ./ (T0 * cosd(cta0) + tube_float - tube_m * g));

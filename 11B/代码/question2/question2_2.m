@@ -75,7 +75,7 @@ function FindBunch(everyIndex,array,k,l,Y,mindist,MAX)
     global count
     
     
-    array(k:end) = [];		% 把当前层之后的序列全部清空
+    array(k:end) = [];		% 把当前层之后的序列全部=清空
 %     if length(array) >= 1
 %     	for i = 1:length(array)
 %     	    time(i) = mindist(Y(i),array(i));	% 记录站点到路口的所有时间

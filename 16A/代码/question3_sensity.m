@@ -1,5 +1,9 @@
+%--------------------------------------------------------------------------
+%             question3_sensity.m  灵敏度分析
+%--------------------------------------------------------------------------
+
 clc,clear
-close all
+% close all
 tic
 % 将弧度转换为度数
 tand = @(x) tan(x * pi / 180);
@@ -12,10 +16,12 @@ sh = @(x) (exp(x) - exp(-x)) ./ 2;
 ch = @(x) (exp(x) + exp(-x)) ./ 2; 
 
 %% ******************************** 数据初始化 *********************************
+syms cta
+syms h
 
 % 锚链的种类
 global MODE
-MODE = 1;
+MODE = 5;
 
 p = 1.025 * 10^3;	% 海水密度
 g = 9.8;			% 重力加速度
@@ -25,6 +31,8 @@ buoy_G = M * g;		% 浮标的重力
 F_allFloat = pi * 1^2 * 2 * p * g;		% 浮标最大浮力
 % 锚链属性
 chain_alldl = [0.078 0.105 0.120 0.150 0.180];
+% chain_alldl = [0.078 0.105 0.120 0.150 0.170];
+% chain_alldl = [0.078 0.105 0.120 0.150 0.189];
 chain_alldm = [3.2 7 12.5 19.5 28.12];
 chain_dl = chain_alldl(MODE);	% 锚链的每节链环长度
 chain_dm = chain_alldm(MODE) * chain_dl;		% 锚链的每节质量
@@ -50,7 +58,6 @@ H1 = 1.8803;
 R0 = 12.7786;
 R1 = 29.2537;
 
-
 v_wind = 36;		% 风速
 minTarget = inf;
 sphere_m = 3000;	% 球的质量
@@ -58,9 +65,14 @@ seaHeight = 16;		% 海水深度
 allFloat = tube_allFloat + barrel_allFloat + F_allFloat;	% 所有最大浮力和
 cta = 0;			% 浮标倾斜角
 
-counti = 1;
+ccc = 1;
 % for seaHeight = 16:0.1:20
-for chain_L = 16:1:16		% 取不同长度的锚链
+% for chain_L = 15.01:1:15.01		% 取不同长度的锚链
+count = 1;
+for F_x = 500:500:3000
+% 	chain_L = 19.82;
+% 	chain_L = 18.829; % 减小 5%
+	chain_L = 20.811; % 增加 5%
 	chain_num = ceil(chain_L ./ chain_dl);	% 锚链环的数量
 	chain_G = chain_num * chain_dm * g;		% 锚链总质量
 	allG = chain_G + tube_allG + barrel_G + buoy_G;		% 总重力
@@ -68,53 +80,49 @@ for chain_L = 16:1:16		% 取不同长度的锚链
 
 	sphere_maxBian = min(sphere_maxM,4500);		% 遍历最大值
 
-	countj = 1;
-	for sphere_m = 1500:100:1500
+	sphere_m = 3375.8;
+% 	sphere_m = 3207.01;
+% 	sphere_m = 3544.59;
+
+	% for sphere_m = 3372.83:100:3372.83
 		
-		[R_all,minDelta,minAlp,minBelta,minGama,minH] = judgeHeight(chain_num,sphere_m,cta,v_wind,seaHeight);
+	[R_all,minDelta,minAlp,minBelta,minGama,minH,F_wind] = judgeHeight(chain_num,sphere_m,cta,F_x,seaHeight);
+% 	[~,~,~,minBelta2,minGama2,~] = judgeHeight(chain_num,sphere_m,cta,F_x,20);
 
-		noteGama(countj,counti) = 90 - minGama(end);
-		noteBelta(countj,counti) = minBelta;
-	
-    	%% ******************************** 找目标最小值 *********************************
- 		anchor_angle = 90 - minGama(end);
- 		barrel_angle = minBelta;
- 		if anchor_angle > 16 || barrel_angle > 5
- 			curTarget(countj,counti) = inf;
- 		else
- 			standize_belta = standize(minBelta,belta0,belta1);
- 			standize_H = standize(minH,H0,H1);
- 			standize_R = standize(R_all,R0,R1);
- 			curTarget(countj,counti) = 0.25*standize_belta + 0.5*standize_H + 0.25*standize_R;
- 			% curTarget(countj,1) = standize(minBelta,belta0,belta1) + standize(minH,H0,H1) + standize(R_all,R0,R1);
- 			% curTarget = minBelta * minH * R_all;
- 		end
-	
- 		curBelta(countj,counti) = minBelta;
- 		curH(countj,counti) = minH;
- 		curR(countj,counti) = R_all;
-	
- 		if curTarget(countj,counti) < minTarget
- 			minTarget = curTarget(countj,counti);
- 			minSphere = sphere_m;
- 			minChainL = chain_L;
- 		end
-	
-    	countj = countj + 1;
+	noteGama = 90 - minGama(end);
+	noteBelta = minBelta;
+
+    %% ******************************** 找目标最小值 *********************************
+ 	anchor_angle = 90 - minGama(end);
+ 	barrel_angle = minBelta;
+%  	anchor_angle2 = 90 - minGama2(end);
+% 	barrel_angle2 = minBelta2;
+	if anchor_angle > 16 || barrel_angle > 5
+ 		curTarget(count,1) = 1;
+ 	else
+ 		standize_belta = standize(minBelta,belta0,belta1);
+ 		standize_H = standize(minH,H0,H1);
+ 		standize_R = standize(R_all,R0,R1);
+ 		curTarget(count,1) = 0.25*standize_belta + 0.5*standize_H + 0.25*standize_R;
  	end
- 	counti = counti + 1;
-end	
-% end
+	
+ 	curBelta = minBelta;
+ 	curH = minH;
+ 	curR = R_all;
+ 	count = count + 1;
+	
 
-% minH
-% minDelta
-% minCta
+end
 
+curTarget = curTarget';
 
+% hold on
+% plot(100:100:3000,curTarget,'LineWidth',3)
+% hold off
 toc
 
 %% countHeight: 根据 h 计算总高
-function [h_all,alp,belta,gama2] = countHeight(h,chain_num,sphere_m,cta,v_wind)
+function [h_all,alp,belta,gama2,F_wind] = countHeight(h,chain_num,sphere_m,cta,F_x)
 	
 	% alp = zeros(4,1);	% 钢管倾斜角
 	% belta = 0;			% 钢桶倾斜角
@@ -159,9 +167,10 @@ function [h_all,alp,belta,gama2] = countHeight(h,chain_num,sphere_m,cta,v_wind)
 	barrel_float = p * g * pi * (barrel_d / 2)^2 * barrel_l;
 	S_wind = (2 - h) * cosd(cta) * 2 + pi / 2 * sind(cta);	% 风投影面积
 	S_water = h * cosd(cta) * 2 + pi / 2 * sind(cta);	% 风投影面积
-	F_wind = 0.625 * S_wind * v_wind^2;		% 风力
-	F_water = 374 * S_water * v_water^2;	% 水流力
-	F_x = F_wind + F_water;
+	% F_wind = 0.625 * S_wind * v_wind^2;		% 风力
+	% F_water = 374 * S_water * v_water^2;	% 水流力
+	F_wind = 0;
+	% F_x = F_wind + F_water;
 	cta0 = atand(F_x ./ (F_float - M * g));	% 浮标所受拉力的倾斜角度
 	T0 = F_x ./ sind(cta0);				% 浮标所受拉力大小
 	
@@ -203,7 +212,7 @@ end
 
 
 %% judgeHeight: 判断 h 对应总高等于水深时的各个参数
-function [R_all,minDelta,minAlp,minBelta,minGama,minH] = judgeHeight(chain_num,sphere_m,cta,v_wind,seaHeight)
+function [R_all,minDelta,minAlp,minBelta,minGama,minH,minFwind] = judgeHeight(chain_num,sphere_m,cta,F_x,seaHeight)
 	global MODE
 	barrel_l = 1;		% 钢桶长度
 	tube_l = 1;			% 钢管长度
@@ -219,7 +228,7 @@ function [R_all,minDelta,minAlp,minBelta,minGama,minH] = judgeHeight(chain_num,s
 		for h = h_left:stepLength:h_right
 		    % h = double(subs(f,'cta',cta));
 			% h = 0.769888;
-			[h_all,alp,belta,gama2] = countHeight(h,chain_num,sphere_m,cta,v_wind);
+			[h_all,alp,belta,gama2,F_wind] = countHeight(h,chain_num,sphere_m,cta,F_x);
 		
 			%% ******************************** 找到总高度最接近 18 的 *********************************
 			delta = abs(h_all - seaHeight);
@@ -229,6 +238,7 @@ function [R_all,minDelta,minAlp,minBelta,minGama,minH] = judgeHeight(chain_num,s
 				% minCta = cta;
 				h_left = minH - stepLength;
 				h_right = minH + stepLength;
+				minFwind = F_wind;
 				minGama = gama2;
 				minBelta = belta;
 				minAlp = alp;

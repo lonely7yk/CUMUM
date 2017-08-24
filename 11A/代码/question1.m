@@ -34,66 +34,81 @@ T = [10	30	2	5	40	5	5	1];			% 各指标的毒性系数
 
 [X,Y,Z] = griddata(x,y,z,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
 figure(1)
-mesh(X,Y,Z);
+surf(X,Y,Z);
 xlabel('x/m')
 ylabel('y/m')
 zlabel('海拔/m')
 title('城市三维地形图')
 
+%% ******************************** 克里金插值(不好用) *********************************
+% figure
+% gridNum = 100;
+% theta = [10 10];
+% lob = [1e-1 1e-1]; upb = [20 20];
+% [dmodel,perf] = dacefit([x,y],z,@regpoly0,@corrgauss,theta,lob,upb);
+% X = gridsamp([0 0; 3*10^4 2*10^4],gridNum);
+% [YX MSE] = predictor(X,dmodel);
+% X1 = reshape(X(:,1),gridNum,gridNum); X2 = reshape(X(:,2),gridNum,gridNum);
+% YX = reshape(YX,size(X1));
+% mesh(X1,X2,YX);
+% hold on;
+% plot3(x,y,z,'.k','markersize',10)
+% hold off;
 
 %% ******************************** 二维图，城市二维等高线图 *********************************
 % 1. 红：生活区 2. 黑：工业区 3. 蓝：山区 4. 紫：交通区 5. 绿：公园绿地区
 
-[X,Y,Z] = griddata(x,y,z,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
-figure(2)
-hold on
-ContourMap(X,Y,Z,x,y,function_zone,0);
-xlabel('x/m')
-ylabel('y/m')
-title('城市二维等高线图')
-hold off;
+% [X,Y,Z] = griddata(x,y,z,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
+% [X,Y,Z] = Kriging(x,y,z);
+% figure
+% hold on
+% ContourMap(X,Y,Z,x,y,function_zone,0);
+% xlabel('x/m')
+% ylabel('y/m')
+% title('城市二维等高线图')
+% hold off;
 
 %% ******************************** 三维插值，把 z 轴变为浓度 *********************************
 z1 = density(:,2);
 [X,Y,Z] = griddata(x,y,z1,linspace(min(x),max(x))',linspace(min(y),max(y)),'v4');
-figure
-hold on
-ContourMap(X,Y,Z,x,y,function_zone,1)
-xlabel('x(m)')
-ylabel('y(m)')
-hold off
-colorbar
+% % [X,Y,Z] = Kriging(x,y,z1);
+% hold on
+% ContourMap(X,Y,Z,x,y,function_zone,1)
+% xlabel('x(m)')
+% ylabel('y(m)')
+% hold off
+% colorbar
 
 %% ******************************** 浓度和海拔的关系 *********************************
-hold on
-for i = 1:8
-	figure(i)
-	density_z = density(:,i+1);
-	for j = 1:62
-		index_z = find(z <= 5 * j & z >= 5 * j - 4);
-		mean5(j) = mean(density_z(index_z));
-	end
-	bar(5:5:310,mean5);
-    xlabel('海拔(m)')
-    if i == 2 || i == 5
-        ylabel('浓度(μg/g)')
-    else
-        ylabel('浓度(ng/g')
-    end
+% hold on
+% for i = 1:8
+% 	figure(i)
+% 	density_z = density(:,i+1);
+% 	for j = 1:62
+% 		index_z = find(z <= 5 * j & z >= 5 * j - 4);
+% 		mean5(j) = mean(density_z(index_z));
+% 	end
+% 	bar(5:5:310,mean5);
+%     xlabel('海拔(m)')
+%     if i == 2 || i == 5
+%         ylabel('浓度(μg/g)')
+%     else
+%         ylabel('浓度(ng/g')
+%     end
 
-end
-hold off
+% end
+% hold off
 
 %% ******************************** 浓度的平均值 *********************************
-pollute_average = [];
-for i = 1:length(pollute)
-	pollute_average(i,:) = mean(pollute{i},1);
-end
+% pollute_average = [];
+% for i = 1:length(pollute)
+% 	pollute_average(i,:) = mean(pollute{i},1);
+% end
 
 %% ******************************** Hakanson *********************************
-Cr = pollute_average ./ background;	% 污染指数
-Er = Cr .* T;		% 各指标的风险值
-RI = sum(Er,2);		% 风险系数
+% Cr = pollute_average ./ background;	% 污染指数
+% Er = Cr .* T;		% 各指标的风险值
+% RI = sum(Er,2);		% 风险系数
 
 %% ContourMap: 画二维等高线图
 function ContourMap(X,Y,Z,x,y,function_zone,command)
@@ -118,4 +133,16 @@ function ContourMap(X,Y,Z,x,y,function_zone,command)
     end
 	leg = legend([ax1,ax2,ax3,ax4,ax5],'生活区','工业区','山区','交通区','公园绿地区');
     set(leg,'Location','southeast')
+end
+
+%% Kriging: 克里金插值
+function [X1,X2,YX] = Kriging(x,y,z)
+	gridNum = 100;
+	theta = [10 10];
+	lob = [1e-1 1e-1]; upb = [20 20];
+	[dmodel,perf] = dacefit([x,y],z,@regpoly0,@corrgauss,theta,lob,upb);
+	X = gridsamp([0 0; 3*10^4 2*10^4],gridNum);
+	[YX MSE] = predictor(X,dmodel);
+	X1 = reshape(X(:,1),gridNum,gridNum); X2 = reshape(X(:,2),gridNum,gridNum);
+	YX = reshape(YX,size(X1));	
 end

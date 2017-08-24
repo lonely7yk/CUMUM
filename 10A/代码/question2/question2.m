@@ -9,18 +9,18 @@ load data2
 
 
 %% ******************************** 未倾斜情况下的高度对应的体积 *********************************
-h = [bias_before(:,2);bias_after(:,2)];
-volume_standard = [];		% 倾斜前油位对应的体积
-v1_standard = [];
-v2_standard = [];
-for i = 1:length(h)
-	[volume_standard(i),v1_standard(i),v2_standard(i)] = Volume_all([0,0],h(i));
-end
+% h = [bias_before(:,2);bias_after(:,2)];
+% volume_standard = [];		% 倾斜前油位对应的体积
+% v1_standard = [];
+% v2_standard = [];
+% for i = 1:length(h)
+% 	[volume_standard(i),v1_standard(i),v2_standard(i)] = Volume_all([0,0],h(i));
+% end
 
-volume_standard = volume_standard';
-v1_standard = v1_standard';
-v2_standard = v2_standard';
-eplison = volume_standard - [bias_before(:,3);bias_after(:,3)];
+% volume_standard = volume_standard';
+% v1_standard = v1_standard';
+% v2_standard = v2_standard';
+% eplison = volume_standard - [bias_before(:,3);bias_after(:,3)];
 
 %% ******************************** 穷举法最小二次拟合 *********************************
 h1 = bias_before(1:end-1,2);
@@ -29,44 +29,90 @@ h_bias = [h1,h2];
 delta_fact1 = bias_before(2:end,1);
 minDelta = inf;
 bias = [0,0];
-for alp = 0:0.1:10
-	for belta = 0:0.1:10
-		delta_idea = Delta2([alp,belta],h_bias);
-		del = sum((delta_idea - delta_fact1).^2);
-		if minDelta > del
-			minDelta = del;
-			bias(1) = alp;
-			bias(2) = belta;
-		end
-	end
+% for alp = 0:0.1:10
+% 	for belta = 0:0.1:10
+% 		delta_idea = Delta2([alp,belta],h_bias);
+% 		del = sum((delta_idea - delta_fact1).^2);
+% 		if minDelta > del
+% 			minDelta = del;
+% 			bias(1) = alp;
+% 			bias(2) = belta;
+% 		end
+% 	end
+% end
+
+%% ******************************** 遗传算法算角度 *********************************
+lba = 0; uba = 10;
+lbb = 0; ubb = 10;
+% 遗传参数
+NIND = 40;		% 种群大小
+MAXGEN = 20;	% 最大遗传代数
+PRECI = 20;		% 个体长度
+GGAP = 0.95;	% 代沟
+px = 0.7;		% 交叉概率
+pm = 0.01;		% 变异概率
+trace = zeros(2,MAXGEN);	% 寻优结果初始值
+
+% 区域描述器 1：个体长度 2、3：上下界 4：编码方式（1为二进制 0为格雷码）
+% 5：子串使用刻度（0为算数 1为对数） 6、7：范围是否包含边界（1为是 0为否）
+FiledD = [PRECI PRECI;lba lbb;uba ubb; 1 1; 0 0; 1 1; 1 1];	
+Chrom = crtbp(NIND,PRECI * 2);		% 随机种群（40 * 20）
+
+gen = 0;
+ab = bs2rv(Chrom,FiledD);
+ObjV = zeros(length(ab),1);
+for i = 1:length(ab)
+	delta_idea = Delta2(ab(i,:),h_bias);
+	ObjV(i) = sum((delta_idea - delta_fact1).^2);
 end
+
+while gen < MAXGEN
+	FitnV = ranking(ObjV);					% 适应度值（适应度越大个体越好，越有可能被选中）
+	SelCh = select('sus',Chrom,FitnV,GGAP);	% 选择
+	SelCh = recombin('xovsp',SelCh,px);		% 重组
+	SelCh = mut(SelCh,pm);					% 变异
+	ab = bs2rv(SelCh,FiledD);				% 子代个体的十进制转换
+    ObjVSel = zeros(size(SelCh,1),1);
+	for i = 1:length(ab)
+		delta_idea = Delta2(ab(i,:),h_bias);
+		ObjVSel(i) = sum((delta_idea - delta_fact1).^2);
+	end
+	[Chrom,ObjV] = reins(Chrom,SelCh,1,1,ObjV,ObjVSel);	% 重插入
+	ab = bs2rv(Chrom,FiledD);
+	gen = gen + 1;
+
+	[Y,I] = min(ObjV);
+	trace(1:2,gen) = ab(I,:);	% 当代最优值对应的 X
+	trace(3,gen) = Y;		% 当代最优值对应的 Y
+end
+plot(1:MAXGEN,trace(3,:));	% 进化图
 
 %% ******************************** 前300组倾斜的尝试 *********************************
-h1 = bias_before(1:end-1,2);
-h2 = bias_before(2:end,2);
-h_bias = [h1,h2];
-delta_fact1 = bias_before(2:end,1);
-delta_idea1 = Delta2(bias,h_bias);
-del1 = abs(delta_idea1 - delta_fact1) ./ delta_fact1;
-maxDel1 = max(del1);
+% h1 = bias_before(1:end-1,2);
+% h2 = bias_before(2:end,2);
+% h_bias = [h1,h2];
+% delta_fact1 = bias_before(2:end,1);
+% delta_idea1 = Delta2(bias,h_bias);
+% del1 = abs(delta_idea1 - delta_fact1) ./ delta_fact1;
+% maxDel1 = max(del1);
 
 %% ******************************** 后300组误差检测 *********************************
-h1 = bias_after(1:end-1,2);
-h2 = bias_after(2:end,2);
-h_bias = [h1,h2];
-delta_fact2 = bias_after(2:end,1);
-delta_idea2 = Delta2(bias,h_bias);
-del2 = abs(delta_idea2 - delta_fact2) ./ delta_fact2;
-maxDel2 = max(del2);
-h = plot(505:803,del2,'ro');
-set(h,'markersize',6)
+% h1 = bias_after(1:end-1,2);
+% h2 = bias_after(2:end,2);
+% h_bias = [h1,h2];
+% delta_fact2 = bias_after(2:end,1);
+% delta_idea2 = Delta2(bias,h_bias);
+% del2 = abs(delta_idea2 - delta_fact2) ./ delta_fact2;
+% maxDel2 = max(del2);
+% h = plot(505:803,del2,'ro');
+% set(h,'markersize',6)
 
 %% ******************************** 每 10 cm 的罐容表标定值 *********************************
-ruler_bias = zeros(30,1);
-for i = 1:30
-	high = 0.1 * i;
-	ruler_bias(i) = Volume_all(bias,high);
-end
+% ruler_bias = zeros(30,1);
+% for i = 1:30
+% 	high = 0.1 * i;
+% 	ruler_bias(i) = Volume_all(bias,high);
+% end
 
 %% ******************************** 非线性拟合（失败） *********************************
 % bias = [0 0];
