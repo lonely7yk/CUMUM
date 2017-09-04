@@ -1,0 +1,651 @@
+%--------------------------------------------------------------------------
+%             question1.m
+%             求影子高度变化
+%--------------------------------------------------------------------------
+
+clc,clear
+% close all
+tic
+
+n = 295;	% 10 月 22 距离 1 月 1 日的天数
+n = 285;
+n = 305;
+
+Pek.Long = 116.39;
+% Pek.Long = 116.39 * 0.95;
+% Pek.Long = 116.39 * 1.05;
+
+Pek.Lat = 39.91;
+% Pek.Lat = 39.91 * 0.95;
+% Pek.Lat = 39.91 * 1.05;
+
+
+Pole.Length = 3;
+fts = @(t) mod((t - (120 - Pek.Long) ./ 180 * 12 + 24),24);
+
+delta = 23.45 .* sin(2 * pi * (284 + n) ./ 365);	% 赤纬角
+
+count = 1;
+for t = linspace(9,15,361)
+	ts = fts(t);		% 地方时
+	w = 15 * (ts - 12);	% 时角
+	alp(count) = asind(sind(Pek.Lat) .* sind(delta) + cosd(Pek.Lat) .* cosd(delta) .* cosd(w));	% 高度角
+	count = count + 1;
+end
+
+shadowLength = Pole.Length ./ tand(alp);
+[miny,minx] = min(shadowLength);
+alp = alp';
+shadowLength = shadowLength';
+
+hold on
+p = plot(shadowLength,'LineWidth',3);
+% plot(minx,miny,'o','MarkerSize',8,'LineWidth',2);
+% text(minx-20,miny+0.2,'(12:14, 3.84)','Color','r','FontSize',18)
+% set(gca,'XTick',0:60:360)
+% set(gca,'XTickLabel',{'9:00','10:00','11:00','12:00','13:00','14:00','15:00'})
+hold off
+
+
+%--------------------------------------------------------------------------
+%             question2.m
+%             通过影子角度变化定位
+%--------------------------------------------------------------------------
+
+clc,clear
+close all
+tic
+%% ******************************** 数据准备 *********************************
+data = xlsread('/Users/shengliyi/Documents/MATLAB/比赛Matlab/15A/代码/data.xlsx',1,'B4:C24');
+pole.x = data(:,1);
+pole.y = data(:,2);
+pole.angle = atand(pole.y ./ pole.x);
+pole.deltaAngle = abs(diff(pole.angle));
+pole.length = sqrt(pole.x.^2 + pole.y.^2);
+
+n = 108;		% 时间序号
+Pek_t = 6.7:0.05:7.7;
+Pek_t = Pek_t';
+% n = 295;
+targetAngle = 23.45 .* sin(2 * pi * (284 + n) ./ 365);	% 赤纬角
+
+
+
+INIT.longLeft = -180;
+INIT.longRight = 180;
+INIT.latLeft = -90;
+INIT.latRight = 90;
+INIT.stepLength = 1;
+[minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole);
+toc
+plot(minPercent,'o','MarkerSize',8,'LineWidth',2)
+% axis([0,20,0,0.01])
+axis([0,20,0,0.03])
+set(gca,'XTickLabel',{'14:42','14:48','14:54','15:00','15:06','15:12','15:18','15:24','15:30','15:36','15:42'})
+set(gca,'YTickLabel',{'0','0.5%' '1.0%' '1.5%' '2.0%' '2.5%' '3.0%'})
+% set(gca,'YTick',0:0.1:1)
+% set(gca,'YTickLabel',{'0','0.1%' '0.2%' '0.3%' '0.4%' '0.5%' '0.6%' '0.7%' '0.8%' '0.9%' '1.0%'})
+
+% minDelta = inf;
+% longLeft = -180;
+% longRight = 180;
+% latLeft = -90;
+% latRight = 90;
+% stepLength = 1;
+% count = 1;
+% for long = longLeft:stepLength:longRight
+% 	for lat = latLeft:stepLength:latRight
+% 		ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+% 		w = 15 .* (ts - 12);			% 时间
+% 		alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+% 		if alp <= 0
+% 			result(count,:) = [inf,long,lat];
+% 			count = count + 1;
+% 			continue
+% 		end
+
+% 		B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+% 		isNe = w < 0;		% 是否为负数
+% 		A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+% 		A_deltaAngle = abs(diff(A));
+% 		delta = sum((A_deltaAngle - pole.deltaAngle).^2);
+% 		result(count,:) = [delta,long,lat];
+% 		count = count + 1;
+% 	end
+% end
+% [~,index] = sort(result(:,1));
+% result = result(index,:);
+
+%% countDelta: function description
+function [minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole)
+	longtitude_left = INIT.longLeft;
+	longtitude_right = INIT.longRight;
+	latitude_left = INIT.latLeft;
+	latitude_right = INIT.latRight;
+	minDelta = inf;
+	for k = 1:3
+		stepLength = INIT.stepLength .* 0.1^(k - 1);
+		for long = longtitude_left:stepLength:longtitude_right
+			for lat = latitude_left:stepLength:latitude_right
+				ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+				w = 15 .* (ts - 12);			% 时间
+				alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+				B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+				isNe = w < 0;		% 是否为负数
+				A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+				A_deltaAngle = abs(diff(A));
+				if alp > 0
+					delta = sum((A_deltaAngle - pole.deltaAngle).^2);
+				else
+					delta = inf;
+				end
+				
+				if delta < minDelta
+					minDelta = delta;
+					minPercent = abs((A_deltaAngle - pole.deltaAngle) ./ pole.deltaAngle);
+					minAngle = A_deltaAngle;
+					minLongtitude = long;
+					minLatitude = lat;
+				end
+			end
+
+		end
+		longtitude_left = max(minLongtitude - stepLength,-180);
+		longtitude_right = min(minLongtitude + stepLength,180);
+		latitude_left = max(minLatitude - stepLength,-90);
+		latitude_right = min(minLatitude + stepLength,90);
+	end
+end
+
+
+%--------------------------------------------------------------------------
+%             question3.m
+%             找出最优日期及对应地点
+%--------------------------------------------------------------------------
+
+clc,clear,close all 
+tic
+
+data1 = xlsread('/Users/shengliyi/Documents/MATLAB/比赛Matlab/15A/代码/data.xlsx',2,'B4:C24');
+data2 = xlsread('/Users/shengliyi/Documents/MATLAB/比赛Matlab/15A/代码/data.xlsx',3,'B4:C24');
+pole1.x = data1(:,1);
+pole1.y = data1(:,2);
+pole1.angle = atand(pole1.y ./ pole1.x);
+pole1.deltaAngle = abs(diff(pole1.angle));
+pole1.length = sqrt(pole1.x.^2 + pole1.y.^2);
+pole2.x = data2(:,1);
+pole2.y = data2(:,2);
+pole2.angle = atand(pole2.y ./ pole2.x);
+pole2.deltaAngle = abs(diff(pole2.angle));
+pole2.length = sqrt(pole2.x.^2 + pole2.y.^2);
+
+for n = 1:365
+	Pek_t = 4+41/60:0.05:5+41/60;
+	% Pek_t = 5.15:0.05:6.15;
+	Pek_t = Pek_t';
+	targetAngle = 23.45 .* sin(2 * pi * (284 + n) ./ 365);	% 赤纬角
+
+	INIT.longLeft = -180;
+	INIT.longRight = 180;
+	INIT.latLeft = -90;
+	INIT.latRight = 90;
+	INIT.stepLength = 1;
+
+	[minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole1);
+
+	result(n,:) = [n,minLongtitude,minLatitude,minDelta];
+end
+
+[~,index] = sort(result(:,4));
+result = result(index,:);
+
+% INIT.longLeft = -180;
+% INIT.longRight = 180;
+% INIT.latLeft = -90;
+% INIT.latRight = 90;
+% INIT.stepLength = 1;
+% targetAngle = 23.45 .* sin(2 * pi * (284 + 141) ./ 365);	% 赤纬角
+% % Pek_t = 4+41/60:0.05:5+41/60;
+% Pek_t = 5.15:0.05:6.15;
+% Pek_t = Pek_t';
+% [minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole2);
+
+toc
+
+%% countDelta: function description
+function [minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole)
+	longtitude_left = INIT.longLeft;
+	longtitude_right = INIT.longRight;
+	latitude_left = INIT.latLeft;
+	latitude_right = INIT.latRight;
+	minDelta = inf;
+	for k = 1:3
+		stepLength = INIT.stepLength .* 0.1^(k - 1);
+		for long = longtitude_left:stepLength:longtitude_right
+			for lat = latitude_left:stepLength:latitude_right
+				ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+				w = 15 .* (ts - 12);			% 时间
+				alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+				B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+				isNe = w < 0;		% 是否为负数
+				A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+				A_deltaAngle = abs(diff(A));
+				if alp > 0
+					delta = sum((A_deltaAngle - pole.deltaAngle).^2);
+				else
+					delta = inf;
+				end
+				
+				if delta < minDelta
+					minDelta = delta;
+					minPercent = abs((A_deltaAngle - pole.deltaAngle) ./ pole.deltaAngle);
+					minAngle = A_deltaAngle;
+					minLongtitude = long;
+					minLatitude = lat;
+				end
+			end
+
+		end
+		longtitude_left = max(minLongtitude - stepLength,-180);
+		longtitude_right = min(minLongtitude + stepLength,180);
+		latitude_left = max(minLatitude - stepLength,-90);
+		latitude_right = min(minLatitude + stepLength,90);
+	end
+end
+
+
+%--------------------------------------------------------------------------
+%             question3_error.m
+%             误差分析
+%--------------------------------------------------------------------------
+
+clc,clear
+close all
+tic
+%% ******************************** 数据准备 *********************************
+data1 = xlsread('/Users/shengliyi/Documents/MATLAB/比赛Matlab/15A/代码/data.xlsx',2,'B4:C24');
+data2 = xlsread('/Users/shengliyi/Documents/MATLAB/比赛Matlab/15A/代码/data.xlsx',3,'B4:C24');
+pole1.x = data1(:,1);
+pole1.y = data1(:,2);
+pole1.angle = atand(pole1.y ./ pole1.x);
+pole1.deltaAngle = abs(diff(pole1.angle));
+pole1.length = sqrt(pole1.x.^2 + pole1.y.^2);
+pole2.x = data2(:,1);
+pole2.y = data2(:,2);
+pole2.angle = atand(pole2.y ./ pole2.x);
+pole2.deltaAngle = abs(diff(pole2.angle));
+pole2.length = sqrt(pole2.x.^2 + pole2.y.^2);
+
+pole = pole2;
+
+n = 21;		% 时间序号
+% Pek_t = 4+41/60:0.05:5+41/60;
+Pek_t = 5.15:0.05:6.15;
+Pek_t = Pek_t';
+% n = 295;
+targetAngle = 23.45 .* sin(2 * pi * (284 + n) ./ 365);	% 赤纬角
+
+% result = countResult(-180,180,-90,90,1,Pek_t,targetAngle,pole);
+
+INIT.longLeft = 109;
+INIT.longRight = 111;
+INIT.latLeft = 28;
+INIT.latRight = 30;
+INIT.stepLength = 0.1;
+[minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole);
+toc
+plot(minPercent,'o','MarkerSize',8,'LineWidth',2)
+axis([0,20,0,0.01])
+% axis([0,20,0,0.03])
+set(gca,'XTickLabel',{'12:41' '12:47' '12:53' '12:59' '13:05' '13:11' '13:17' '13:23' '13:29' '13:35' '13:41'})
+% set(gca,'YTickLabel',{'0','0.5%' '1.0%' '1.5%' '2.0%' '2.5%' '3.0%'})
+set(gca,'YTickLabel',{'0','0.1%' '0.2%' '0.3%' '0.4%' '0.5%' '0.6%' '0.7%' '0.8%' '0.9%' '1.0%'})
+
+
+%% countResult: 计算三个地点的大致坐标
+function [result] = countResult(longLeft,longRight,latLeft,latRight,stepLength,Pek_t,targetAngle,pole)
+	count = 1;
+	for long = longLeft:stepLength:longRight
+		for lat = latLeft:stepLength:latRight
+			ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+			w = 15 .* (ts - 12);			% 时间
+			alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+			B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+			isNe = w < 0;		% 是否为负数
+			A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+			A_deltaAngle = abs(diff(A));
+			delta = sum((A_deltaAngle - pole.deltaAngle).^2);
+			result(count,:) = [delta,long,lat];
+			count = count + 1;
+		end
+	end
+	[~,index] = sort(result(:,1));
+	result = result(index,:);
+end
+
+
+%% countDelta: 地点的精确坐标
+function [minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole)
+	longtitude_left = INIT.longLeft;
+	longtitude_right = INIT.longRight;
+	latitude_left = INIT.latLeft;
+	latitude_right = INIT.latRight;
+	minDelta = inf;
+	for k = 1:2
+		stepLength = INIT.stepLength .* 0.1^(k - 1);
+		for long = longtitude_left:stepLength:longtitude_right
+			for lat = latitude_left:stepLength:latitude_right
+				ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+				w = 15 .* (ts - 12);			% 时间
+				alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+				B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+				isNe = w < 0;		% 是否为负数
+				A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+				A_deltaAngle = abs(diff(A));
+				delta = sum((A_deltaAngle - pole.deltaAngle).^2);
+				
+				if delta < minDelta
+					minDelta = delta;
+					minPercent = abs((A_deltaAngle - pole.deltaAngle) ./ pole.deltaAngle);
+					minAngle = A_deltaAngle;
+					minLongtitude = long;
+					minLatitude = lat;
+				end
+			end
+
+		end
+		longtitude_left = max(minLongtitude - stepLength,-180);
+		longtitude_right = min(minLongtitude + stepLength,180);
+		latitude_left = max(minLatitude - stepLength,-90);
+		latitude_right = min(minLatitude + stepLength,90);
+	end
+end
+
+
+%--------------------------------------------------------------------------
+%             VideoRead.m
+%             读取视频中的图片，一秒取一张图
+%--------------------------------------------------------------------------
+clc,clear
+close all
+tic
+
+videoName = 'video.mp4';
+obj = VideoReader(videoName);
+numFrames = obj.NumberOfFrames;	% 帧的总数
+needFrames = 2440;      % 需要分成多少张图片
+stepLength = ceil(numFrames ./ needFrames);
+% 读取数据
+for k = 1:needFrames
+	frame_num = stepLength * k;
+	frame = read(obj,frame_num);
+	% imshow(frame);
+	imwrite(frame,strcat('/Users/shengliyi/Documents/MATLAB/比赛Matlab/15A/videoPicture/',num2str(k),'.jpg'));
+end
+
+toc
+
+
+%--------------------------------------------------------------------------
+%             question4_hough.m
+%             通过霍夫变换找到影子端点坐标
+%--------------------------------------------------------------------------
+
+clc,clear
+close all
+tic
+
+basePoint = [3,24];
+num_Pic = 2346;
+
+for i = 1:num_Pic
+    I = imread(strcat('/Users/shengliyi/Documents/MATLAB/比赛Matlab/15A/videoPicture/',num2str(i),'.jpg')); %读取图像
+    I = imrotate(I,2.5);
+    BW = im2bw(I,0.82);		% 二值化
+    up1 = 302;
+    up2 = 315;
+    end1 = 50;
+    end2 = 80;
+    BW = BW(up1:end-end1,up2:end-end2);
+    BW = edge(double(BW),'canny');
+    BW = imdilate(BW,ones(3));
+
+    %% ******************************** 霍夫变换 *********************************
+    [H,T,R] = hough(BW,'RhoResolution',0.5,'ThetaResolution',0.5);
+
+    %% ******************************** 标出极值点 *********************************
+    P = houghpeaks(H,10,'threshold',ceil(0.5*max(H(:)))); % 从霍夫变换矩阵H中提取10个极值点，大于 0.3 * maxH 会被认为是峰值
+
+    %% ******************************** 提取直线 *********************************
+    lines = houghlines(BW,T,R,P,'FillGap',15,'MinLength',120);
+
+    point = [];
+    for j = 1:length(lines)
+        point(j,:) = lines(j).point2;
+    end
+
+    [~,index] = sort(point(:,1),'descend');
+    result(i,:) = point(index(1),:);
+end
+
+% dis = pdist2(basePoint,result);
+% b = polyfit(1:num_Pic,dis,2);
+% y = polyval(b,0:num_Pic);
+% plot(0:num_Pic,y)
+
+x0 = result(:,1) - basePoint(1);
+y0 = (result(:,2) - basePoint(2)) ./ sind(40.52);
+b1 = polyfit(1:num_Pic,x0',2);
+b2 = polyfit(1:num_Pic,y0',2);
+
+%% 误差分析
+x1 = polyval(b1,1:num_Pic);
+x_delta = (x1 - x0) ./ x0;
+y1 = polyval(b2,1:num_Pic);
+y_delta = (y1 - y0) ./ y0;
+
+%% 数据准备
+x2 = polyval(b1,1:60:num_Pic);
+y2 = polyval(b2,1:60:num_Pic);
+shadowLength0 = sqrt(x2.^2 + y2.^2);
+shadowAngle0 = atand(y2 ./ x2);
+diffShadowAngle0 = abs(diff(shadowAngle0));
+
+toc
+
+
+%--------------------------------------------------------------------------
+%             question4_towmulti.m
+%             最小二乘遍历找时间地点
+%--------------------------------------------------------------------------
+
+clc,clear,close all 
+tic
+
+load question4_hough2
+
+pole.x = x2';
+pole.y = y2';
+pole.angle = atand(pole.y ./ pole.x);
+pole.deltaAngle = abs(diff(pole.angle));
+pole.length = 2;
+pole.shadowLength = sqrt(pole.x.^2 + pole.y.^2) ./ 240 .* 2;
+n = 209;	% 7 月 13 日的时间号
+
+% for n = 1:365
+	step_t = 1/60;
+	Pek_t = 0.9+1/60:step_t:1+34/60;
+	% % Pek_t = 5.15:0.05:6.15;
+	Pek_t = Pek_t';
+	targetAngle = 23.45 .* sin(2 * pi * (284 + n) ./ 365);	% 赤纬角
+
+	INIT.longLeft = 110;
+	INIT.longRight = 114;
+	INIT.latLeft = 22;
+	INIT.latRight = 24;
+	INIT.stepLength = 1;
+
+	[minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole);
+
+% 	result4(n,:) = [n,minLongtitude,minLatitude,minDelta];
+% end
+
+% [~,index] = sort(result4(:,4));
+% result4 = result4(index,:);
+
+% result1 = countAngle(Pek_t,targetAngle,pole);
+% result2 = countHeight(Pek_t,targetAngle,pole);
+result3 = countHeightAndAngle(Pek_t,targetAngle,pole);
+
+toc
+
+%% countDelta: function description
+function [minLongtitude,minLatitude,minDelta,minPercent,minAngle] = countDelta(INIT,targetAngle,Pek_t,pole)
+	longtitude_left = INIT.longLeft;
+	longtitude_right = INIT.longRight;
+	latitude_left = INIT.latLeft;
+	latitude_right = INIT.latRight;
+	minDelta = inf;
+	for k = 1:3
+		stepLength = INIT.stepLength .* 0.1^(k - 1);
+		for long = longtitude_left:stepLength:longtitude_right
+			for lat = latitude_left:stepLength:latitude_right
+				ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+				w = 15 .* (ts - 12);			% 时间
+				alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+				B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+				isNe = w < 0;		% 是否为负数
+				A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+				A_deltaAngle = abs(diff(A));
+				if alp > 0
+					delta1 = sum(((A_deltaAngle - pole.deltaAngle) ./ A_deltaAngle).^2);
+					Height = pole.length ./ tand(alp);
+					delta2 = sum(((Height - pole.shadowLength) ./ Height).^2);
+					delta = delta1 + delta2;
+				else
+					delta = inf;
+				end
+				
+				if delta < minDelta
+					minDelta = delta;
+					minPercent{1} = abs((A_deltaAngle - pole.deltaAngle) ./ pole.deltaAngle);
+					minPercent{2} = abs((Height - pole.shadowLength) ./ Height);
+					minAngle = A_deltaAngle;
+					minLongtitude = long;
+					minLatitude = lat;
+				end
+			end
+
+		end
+		longtitude_left = max(minLongtitude - stepLength,-180);
+		longtitude_right = min(minLongtitude + stepLength,180);
+		latitude_left = max(minLatitude - stepLength,-90);
+		latitude_right = min(minLatitude + stepLength,90);
+	end
+end
+
+%% countAngle: 角度最小二乘
+function [result] = countAngle(Pek_t,targetAngle,pole)
+
+	minDelta = inf;
+	longLeft = -180;
+	longRight = 180;
+	latLeft = -90;
+	latRight = 90;
+	stepLength = 1;
+	count = 1;
+	for long = longLeft:stepLength:longRight
+		for lat = latLeft:stepLength:latRight
+			ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+			w = 15 .* (ts - 12);			% 时间
+			alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+			if alp <= 0
+				result(count,:) = [inf,long,lat];
+				count = count + 1;
+				continue
+			end
+	
+			B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+			isNe = w < 0;		% 是否为负数
+			A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+			A_deltaAngle = abs(diff(A));
+			delta = sum((A_deltaAngle - pole.deltaAngle).^2);
+			result(count,:) = [delta,long,lat];
+			count = count + 1;
+		end
+	end
+	[~,index] = sort(result(:,1));
+	result = result(index,:);
+end
+
+%% countHeight: 影子高度最小二乘
+function [result] = countHeight(Pek_t,targetAngle,pole)
+
+	minDelta = inf;
+	longLeft = -180;
+	longRight = 180;
+	latLeft = -90;
+	latRight = 90;
+	stepLength = 1;
+	count = 1;
+	for long = longLeft:stepLength:longRight
+		for lat = latLeft:stepLength:latRight
+			ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+			w = 15 .* (ts - 12);			% 时间
+			alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+			if alp <= 0
+				result(count,:) = [inf,long,lat];
+				count = count + 1;
+				continue
+			end
+			
+			Height = pole.length ./ tand(alp);
+			shadowHeight = pole.shadowLength;
+			delta = sum((Height - shadowHeight).^2);
+			result(count,:) = [delta,long,lat];
+			count = count + 1;
+		end
+	end
+	[~,index] = sort(result(:,1));
+	result = result(index,:);
+end
+
+%% countHeightAndAngle: 影子高度和角度最小二乘
+function [result] = countHeightAndAngle(Pek_t,targetAngle,pole)
+
+	minDelta = inf;
+	longLeft = -180;
+	longRight = 180;
+	latLeft = -90;
+	latRight = 90;
+	stepLength = 1;
+	count = 1;
+	for long = longLeft:stepLength:longRight
+		for lat = latLeft:stepLength:latRight
+			ts = mod(Pek_t + long ./ 15 + 24,24);	% 地方时
+			w = 15 .* (ts - 12);			% 时间
+			alp = asind(sind(lat) .* sind(targetAngle) + cosd(lat) .* cosd(targetAngle) .* cosd(w));	% 太阳高度角
+			if alp <= 0
+				result(count,:) = [inf,long,lat];
+				count = count + 1;
+				continue
+			end
+			
+			Height = pole.length ./ tand(alp);
+			shadowHeight = pole.shadowLength;
+
+			B = (sind(targetAngle) - sind(alp) .* sind(lat)) ./ (cosd(alp) .* cosd(lat));
+			isNe = w < 0;		% 是否为负数
+			A = acosd(B) .* isNe + (360 - acosd(B)) .* ~isNe;
+			A_deltaAngle = abs(diff(A));
+			delta1 = sum(((A_deltaAngle - pole.deltaAngle) ./ A_deltaAngle).^2);
+
+			delta2 = sum(((Height - shadowHeight) ./ Height).^2);
+			delta = delta1 + delta2;
+			result(count,:) = [delta,long,lat];
+			count = count + 1;
+		end
+	end
+	[~,index] = sort(result(:,1));
+	result = result(index,:);
+end
